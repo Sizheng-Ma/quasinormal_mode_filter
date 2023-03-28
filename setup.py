@@ -24,5 +24,11 @@ if __name__ == "__main__":
             "qnm",
             "lalsuite",
             "matplotlib",
+            "sxs",
+            "joblib",
+            "scipy",
+            "lal",
+            "warnings",
+            "astropy",
         ],  # TODO: change the order
     )
