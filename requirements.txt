@@ -1,0 +1,11 @@
+h5py
+numpy
+qnm
+lalsuite
+matplotlib
+sxs
+joblib
+scipy
+lal
+warnings
+astropy
