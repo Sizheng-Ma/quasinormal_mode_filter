@@ -1,9 +1,11 @@
 name: qnm_filter
+channels:
+  - conda-forge
+  - defaults
 dependencies:
   - h5py
   - numpy
   - qnm
-  - lalsuite
   - matplotlib
   - sxs
   - joblib
