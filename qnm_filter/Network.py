@@ -71,6 +71,7 @@ class Network(object):
         self.acfs = {}
         self.start_times = {}
         self.inverse_cholesky_L = {}
+        self.inverse_cholesky_L_total = {}
         self.i0_dict = {}
 
         self.ra = kws.get("ra", None)
@@ -216,7 +217,7 @@ class Network(object):
             noise.from_psd()
             self.acfs[ifo] = noise.acf
 
-    def cholesky_decomposition(self) -> None:
+    def cholesky_decomposition(self, cii) -> None:
         """Compute the Cholesky-decomposition of covariance matrix :math:`C = L^TL`,
         and the inverse of :math:`L`.
         """
@@ -234,6 +235,16 @@ class Network(object):
                 raise ValueError("Inverse of L is not correct")
 
             self.inverse_cholesky_L[ifo] = L_inv
+        total = self.acfs["H1"] * cii**2 + self.acfs["L1"]
+        truncated_acf_total = total.iloc[: self.sampling_n].values
+        L_total = np.linalg.cholesky(sl.toeplitz(truncated_acf_total))
+        L_total_inv = np.linalg.inv(L_total)
+        norm = np.sqrt(
+            np.sum(abs(np.dot(L_total_inv, L_total) - np.identity(len(L_total))) ** 2)
+        )
+        if abs(norm) > 1e-8:
+            raise ValueError("Inverse of L is not correct")
+        self.inverse_cholesky_L_total["None"] = L_total_inv
 
     def compute_likelihood(self, apply_filter=True) -> float:
         """Compute likelihood for interferometer network.
@@ -258,6 +269,20 @@ class Network(object):
         for ifo, data in truncation.items():
             wd = np.dot(self.inverse_cholesky_L[ifo], data)
             likelihood -= 0.5 * np.dot(wd, wd)
+        return likelihood
+
+    def compute_likelihood_coherent(self, cii, apply_filter=True):
+        likelihood = 0
+
+        if not apply_filter:
+            truncation = self.truncate_data(self.original_data)
+        else:
+            truncation = self.truncate_data(self.filtered_data)
+
+        datadata = truncation["L1"].values + cii * truncation["H1"].values
+
+        wd = np.dot(self.inverse_cholesky_L_total["None"], datadata)
+        likelihood = -0.5 * np.dot(wd, wd)
         return likelihood
 
     def add_filter(self, **kwargs):
@@ -289,6 +314,24 @@ class Network(object):
         model_list = kwargs.pop("model_list")
         self.add_filter(mass=M_est, chi=chi_est, model_list=model_list)
         return self.compute_likelihood(apply_filter=True)
+
+    def likelihood_vs_mass_spin_coherent(self, M_est, chi_est, **kwargs) -> float:
+        """Compute likelihood for the given mass and spin
+
+        Parameters
+        ----------
+        M_est : float
+            in solar mass, mass of rational filters
+        chi_est : float
+            dimensionless spin of rational filters
+        Returns
+        -------
+        The corresponding likelihood.
+        """
+        model_list = kwargs.pop("model_list")
+        cii = kwargs.pop("cii")
+        self.add_filter(mass=M_est, chi=chi_est, model_list=model_list)
+        return self.compute_likelihood_coherent(cii, apply_filter=True)
 
     def compute_SNR(self, data, template, ifo, optimal) -> float:
         """Compute matched-filter/optimal SNR.
