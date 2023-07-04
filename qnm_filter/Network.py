@@ -231,6 +231,17 @@ class Network(object):
             L = np.linalg.cholesky(sl.toeplitz(truncated_acf))
             self.cholesky_L[ifo] = L
 
+    def add_tukey_windows(self, alpha) -> None:
+        """Add Tukey windows to :attr:`Network.original_data`
+
+        Parameters
+        ----------
+        alpha : float
+            The parameter for the Tukey window
+        """
+        for ifo, data in self.original_data.items():
+            self.original_data[ifo] = data.add_tukey(alpha)
+
     def compute_likelihood(self, apply_filter=True) -> float:
         """Compute likelihood for interferometer network.
 
