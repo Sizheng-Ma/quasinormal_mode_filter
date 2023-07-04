@@ -6,6 +6,8 @@ __all__ = [
     "project_to_1d",
     "pad_data_for_fft",
     "evidence_parallel",
+    "least_square_tempate",
+    "linear_fit",
     "save_class",
     "load_class",
 ]
@@ -16,6 +18,7 @@ import numpy as np
 from scipy.special import logsumexp
 from scipy.optimize import fsolve
 from scipy.interpolate import interp1d
+import qnm
 import warnings
 import pickle
 
@@ -271,3 +274,24 @@ def load_class(filename):
     with open(filename, "rb") as file:
         fit = pickle.load(file)
     return fit
+
+
+def least_square_tempate(a, mass, model_list, t):
+    htot = []
+    htot += [np.exp(0 * t)]
+    for l, m, n in model_list:
+        grav = qnm.modes_cache(s=-2, l=l, m=m, n=n)
+        omega, _, _ = grav(a=a)
+        htot += [np.exp(-1j * omega / mass * (t - t[0]))]
+    return np.array(htot).T
+
+
+def linear_fit(data, t0, a, mass, model_list):
+    truncated_data = data.truncate_data(before=t0, after=80)
+
+    tcut = truncated_data.time
+    hcut = truncated_data.values
+
+    datalist = least_square_tempate(a, mass, model_list, tcut)
+    linearfit = np.linalg.lstsq(datalist, hcut, rcond=None)[0]
+    return np.sum(datalist * linearfit, axis=1), linearfit, truncated_data
