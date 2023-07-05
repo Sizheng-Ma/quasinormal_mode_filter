@@ -329,6 +329,10 @@ class RealData(DataBase):
         name of interferometer.
     """
 
+    def pad_real_data_for_fft(self, partition, len_pow):
+        data_pad, tpad = pad_data_for_fft(self, partition, len_pow)
+        return RealData(data_pad, index=tpad, ifo=self.ifo)
+
     @property
     def fft_freq(self):
         """FFT angular frequency stamps."""
