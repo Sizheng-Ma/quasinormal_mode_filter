@@ -256,3 +256,8 @@ class SXSWaveforms:
     def trunc_pad(data, before, after, partition, len_pow):
         truncated_data = data.truncate_data(before=before, after=after)
         return truncated_data.pad_complex_data_for_fft(partition, len_pow)
+
+    @staticmethod
+    def trunc_pad_real(data, before, after, partition, len_pow):
+        truncated_data = data.truncate_data(before=before, after=after)
+        return truncated_data.pad_real_data_for_fft(partition, len_pow)

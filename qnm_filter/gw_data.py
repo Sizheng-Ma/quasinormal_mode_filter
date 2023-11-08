@@ -360,6 +360,46 @@ class RealData(DataBase):
         """FFT of gravitational-wave data."""
         return np.fft.rfft(self.values, norm="ortho")
 
+    def pad_real_data_for_fft(self, partition, len_pow):
+        """Pad zeros on both sides for FFT
+
+        Parameters
+        ----------
+        partition : int
+            fraction of zeros to be padded on the left
+        len_pow : int
+            the final length of padded data is :math:`2^{\textrm{len\_pow}}`
+
+        Returns
+        -------
+        ComplexData
+            padded data
+        """
+        tpad, data_pad = pad_data_for_fft(self, partition, len_pow)
+        return RealData(data_pad, index=tpad, ifo=self.ifo)
+
+    def truncate_data(self, before=None, after=None, copy=None):
+        """Truncate data before and after some index value
+
+        Parameters
+        ----------
+        before : double, optional
+            truncate all data before this index value, by default None
+        after : double, optional
+            truncate all data after this index value, by default None
+        copy : copy, optional
+            return a copy of the truncated data, by default None
+
+        Returns
+        -------
+        ComplexData
+            truncated data
+        """
+        truncated_waveform = self.truncate(before, after, copy)
+        return RealData(
+            truncated_waveform.values, index=truncated_waveform.index, ifo=self.ifo
+        )
+
     def condition(
         self,
         t0=None,
